@@ -1,0 +1,56 @@
+﻿@page "/"
+@using GrpcTest
+@using grpcBlazorTest.Shared
+@inject ProbniServis.ProbniServisClient pk
+@inject Konvertor kon
+
+<p>
+	<EditForm Model="@_porukaKli" OnSubmit="GrpcGoooo">
+		<InputText @bind-Value="_porukaKli.Nesto" />
+		<InputNumber @bind-Value="_porukaKli.NekiBroj" />
+		<button type="submit">Goooo</button>
+	</EditForm>
+</p>
+<p>Od servera: <b>@_porukaSer.Nesto @_porukaSer.NekiBroj</b></p>
+<p>
+	<button @onclick="Teest">Test osoba</button>
+</p>
+<p>
+<p>Od servera: </p>
+@if (_neko != null)
+{
+	<p>Ime:<b>@_neko.Ime</b></p>
+	<p>Prezime:<b>@_neko.Prezime</b></p>
+	<ul>
+		@foreach (Adresa adr in _neko.Adrese)
+		{
+			<li>@adr.Ulica @adr.Broj</li>
+		}
+	</ul>
+}
+</p>
+
+@code
+{
+	private ProbnaPoruka _porukaKli = new ProbnaPoruka();
+	private ProbnaPoruka _porukaSer = new ProbnaPoruka();
+
+	private Korisnik _neko;
+
+	private async Task GrpcGoooo()
+	{
+		_porukaSer = await pk.ProbniPozivAsync(_porukaKli);
+		StateHasChanged();
+	}
+
+	private async Task Teest()
+	{
+		Korisnik k = new Korisnik { Ime = "Pera", Prezime = "Peric" };
+		k.Adrese.Add(new Adresa { Ulica = "Asd", Broj = "123" });
+		k.Adrese.Add(new Adresa { Ulica = "Qwe", Broj = "567" });
+		k.Adrese.Add(new Adresa { Ulica = "Zxc", Broj = "987" });
+
+		_neko = kon.Konvert(await pk.KorisnikTestAsync(kon.Konvert(k)));
+		StateHasChanged();
+	}
+}
