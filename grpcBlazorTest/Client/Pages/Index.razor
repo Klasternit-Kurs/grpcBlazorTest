@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using GrpcTest
+@using Grpc.Core
 @using grpcBlazorTest.Shared
 @inject ProbniServis.ProbniServisClient pk
 @inject Konvertor kon
@@ -15,7 +16,7 @@
 <p>
 	<button @onclick="Teest">Test osoba</button>
 </p>
-<p>
+<div>
 <p>Od servera: </p>
 @if (_neko != null)
 {
@@ -28,7 +29,25 @@
 		}
 	</ul>
 }
-</p>
+</div>
+
+<div>
+	<p><button @onclick="Sget">Fetch</button></p>
+	Streeeem:
+	@foreach (Korisnik k in _lKor)
+	{
+		<p>Ime:<b>@k.Ime</b></p>
+		<p>Prezime:<b>@k.Prezime</b></p>
+		<ul>
+			@foreach(var adr in k.Adrese)
+			{
+				<li>@adr.Ulica @adr.Broj</li>
+			}
+		</ul>
+	}
+
+</div>
+
 
 @code
 {
@@ -36,6 +55,8 @@
 	private ProbnaPoruka _porukaSer = new ProbnaPoruka();
 
 	private Korisnik _neko;
+	private List<Korisnik> _lKor = new List<Korisnik>();
+
 
 	private async Task GrpcGoooo()
 	{
@@ -52,5 +73,16 @@
 
 		_neko = kon.Konvert(await pk.KorisnikTestAsync(kon.Konvert(k)));
 		StateHasChanged();
+	}
+
+	private async Task Sget()
+	{
+		var tok = pk.KorisnikStream(new KorisnikPoruka());
+
+		await foreach(KorisnikPoruka kp in tok.ResponseStream.ReadAllAsync())
+		{
+			_lKor.Add(kon.Konvert(kp));
+			StateHasChanged();
+		}
 	}
 }

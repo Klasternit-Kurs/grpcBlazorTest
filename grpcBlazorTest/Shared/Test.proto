@@ -5,6 +5,7 @@ package test;
 service ProbniServis {
 	rpc ProbniPoziv (ProbnaPoruka) returns (ProbnaPoruka);
 	rpc KorisnikTest (KorisnikPoruka) returns (KorisnikPoruka);
+	rpc KorisnikStream (KorisnikPoruka) returns (stream KorisnikPoruka);
 }
 
 message ProbnaPoruka {
@@ -15,10 +16,12 @@ message ProbnaPoruka {
 message KorisnikPoruka {
 	string Ime = 1;
 	string Prezime = 2;
-	repeated AdresaPoruka Adrese = 3;
+	string ID = 3;
+	repeated AdresaPoruka Adrese = 4;
 }
 
 message AdresaPoruka {
-	string Ulica = 1;
-	string Broj = 2;
+	int32 ID = 1;	
+	string Ulica = 2;
+	string Broj = 3;
 }
