@@ -2,6 +2,9 @@
 @using GrpcTest
 @using Grpc.Core
 @using grpcBlazorTest.Shared
+@using System.Diagnostics
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager nm 
 @inject ProbniServis.ProbniServisClient pk
 @inject Konvertor kon
 
@@ -39,7 +42,7 @@
 		<p>Ime:<b>@k.Ime</b></p>
 		<p>Prezime:<b>@k.Prezime</b></p>
 		<ul>
-			@foreach(var adr in k.Adrese)
+			@foreach (var adr in k.Adrese)
 			{
 				<li>@adr.Ulica @adr.Broj</li>
 			}
@@ -47,7 +50,11 @@
 	}
 
 </div>
-
+<button @onclick="Kstream">Klijent stream grpc</button>
+<button @onclick="Rtest">SignalR test</button>
+<button @onclick="Dupleks">gRpc dupleks</button>
+<p>Zbir je: <b>@_zbir</b></p>
+<p>Vreme je: <b>@_vreme</b></p>
 
 @code
 {
@@ -56,7 +63,22 @@
 
 	private Korisnik _neko;
 	private List<Korisnik> _lKor = new List<Korisnik>();
-
+	private int _zbir;
+	private long _vreme;
+	private Stopwatch sw = new Stopwatch();
+	private HubConnection _hc;
+	override protected async Task OnInitializedAsync()
+	{
+		_hc = new HubConnectionBuilder().WithUrl(nm.ToAbsoluteUri("rHub")).Build();
+		_hc.On<int>("EvoZbir", (z) =>
+		{
+			_zbir = z;
+			sw.Stop();
+			_vreme = sw.ElapsedMilliseconds;
+			sw.Reset();
+		});
+		await _hc.StartAsync();
+	}
 
 	private async Task GrpcGoooo()
 	{
@@ -79,10 +101,56 @@
 	{
 		var tok = pk.KorisnikStream(new KorisnikPoruka());
 
-		await foreach(KorisnikPoruka kp in tok.ResponseStream.ReadAllAsync())
+		await foreach (KorisnikPoruka kp in tok.ResponseStream.ReadAllAsync())
 		{
 			_lKor.Add(kon.Konvert(kp));
 			StateHasChanged();
+		}
+	}
+
+	private async Task Kstream()
+	{
+		int[] brojevi = { 4, 6, 8, 10, 34, 56, 54, 23 };
+		Stopwatch sw = new Stopwatch();
+		sw.Start();
+		using (var poziv = pk.Sabirac())
+		{
+			foreach (int br in brojevi)
+			{
+				await poziv.RequestStream.WriteAsync(new BrojPoruka { Br = br });
+			}
+			await poziv.RequestStream.CompleteAsync();
+			_zbir = (await poziv.ResponseAsync).Br;
+		}
+		sw.Stop();
+		_vreme = sw.ElapsedMilliseconds;
+		sw.Reset();
+	}
+	private async Task Rtest()
+	{
+		int[] brojevi = { 4, 6, 8, 10, 34, 56, 54, 23 };
+		sw.Start();
+		await _hc.SendAsync("Sabirac", brojevi.ToList());
+	}
+
+	private async Task Dupleks()
+	{
+		using (var poziv = pk.Dupleks())
+		{
+			var zaOdgovore = Task.Run(async () =>
+			{
+				await foreach (BrojPoruka bp in poziv.ResponseStream.ReadAllAsync())
+					Console.WriteLine($"Primio {bp.Br}");
+			});
+
+			int[] brojevi = { 4, 6, 8, 10, 34, 56, 54, 23 };
+			foreach (int b in brojevi)
+			{
+				Console.WriteLine($"Saljem {b}");
+				await poziv.RequestStream.WriteAsync(new BrojPoruka { Br = b });
+			}
+			await poziv.RequestStream.CompleteAsync();
+			await zaOdgovore;
 		}
 	}
 }

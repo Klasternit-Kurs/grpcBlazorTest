@@ -6,6 +6,17 @@ service ProbniServis {
 	rpc ProbniPoziv (ProbnaPoruka) returns (ProbnaPoruka);
 	rpc KorisnikTest (KorisnikPoruka) returns (KorisnikPoruka);
 	rpc KorisnikStream (KorisnikPoruka) returns (stream KorisnikPoruka);
+	rpc Sabirac (stream BrojPoruka) returns (BrojPoruka);
+	rpc Dupleks (stream BrojPoruka) returns (stream BrojPoruka);
+}
+
+
+message BrojPoruka {
+	int32 Br = 1;
+}
+
+message PraznaPoruka {
+
 }
 
 message ProbnaPoruka {

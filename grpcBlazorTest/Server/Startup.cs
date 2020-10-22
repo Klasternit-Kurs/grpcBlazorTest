@@ -24,6 +24,7 @@ namespace grpcBlazorTest.Server
 		// For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
 		public void ConfigureServices(IServiceCollection services)
 		{
+			services.AddSignalR();
 			services.AddDbContext<DB>(o => 
 				o.UseSqlServer(Configuration.GetConnectionString("Baza")));
 			services.AddTransient<Konvertor>();
@@ -53,6 +54,7 @@ namespace grpcBlazorTest.Server
 
 			app.UseEndpoints(endpoints =>
 			{
+				endpoints.MapHub<rHub>("rHub");
 				endpoints.MapGrpcService<MojServis>();
 				endpoints.MapRazorPages();
 				endpoints.MapControllers();
